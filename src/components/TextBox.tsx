@@ -3,7 +3,6 @@
 import TextareaAutosize from 'react-textarea-autosize'
 import type { ComponentProps } from 'react'
 
-// Use the library's own prop type so 'style' matches
 type Props = ComponentProps<typeof TextareaAutosize> & {
   className?: string
 }

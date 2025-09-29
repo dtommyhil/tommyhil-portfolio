@@ -39,7 +39,7 @@ export default function AskForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-xl p-3 flex items-end bg-gray-200">
+    <form onSubmit={onSubmit} className="rounded-xl p-3 flex items-end bg-gray-100">
       <TextareaAutosize
         name="message"
         value={message}
@@ -47,7 +47,7 @@ export default function AskForm() {
         onKeyDown={onKeyDown}
         minRows={1}
         maxRows={10}
-        placeholder="Type your question or deepest secret"
+        placeholder="Type your question.."
         className="flex-1 px-3 py-2 bg-transparent resize-none focus:outline-none rounded-xl"
       />
       <button
