@@ -1,80 +1,135 @@
 import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// --- Email sender ---
-const resend = new Resend(process.env.RESEND_API_KEY)
+const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token'
+const SPOTIFY_RECENT_TRACKS_URL = 'https://api.spotify.com/v1/me/player/recently-played'
+const SPOTIFY_TOP_TRACKS_URL = 'https://api.spotify.com/v1/me/top/tracks'
 
-// --- Validation schema ---
-const AskSchema = z.object({
-  name: z.string().min(2, 'Name is too short').max(80, 'Name is too long'),
-  email: z.string().email('Please enter a valid email'),
-  message: z.string().min(10, 'Message is too short').max(2000, 'Message is too long'),
-  topic: z.string().max(60, 'Topic is too long').optional(),
-  // Honeypot: bots will fill this, humans won’t (keep it empty)
-  website: z.string().max(0).optional(),
+const QuerySchema = z.object({
+  type: z.enum(['recent', 'top']).default('recent'),
 })
 
-type AskPayload = z.infer<typeof AskSchema>
+type Query = z.infer<typeof QuerySchema>
 
-function clientIp(req: Request) {
-  const xff = (req.headers.get('x-forwarded-for') || '').split(',')[0]?.trim()
-  return xff || 'unknown'
+type SpotifyImage = { url: string; width?: number; height?: number }
+type SpotifyArtist = { name: string }
+type SpotifyAlbum = { name: string; images?: SpotifyImage[] }
+type SpotifyTrack = {
+  id: string
+  name: string
+  artists: SpotifyArtist[]
+  album: SpotifyAlbum
+  preview_url?: string | null
+  external_urls?: { spotify?: string }
+}
+type RecentlyPlayedItem = { played_at: string; track: SpotifyTrack }
+type TopTracksResponse = { items?: SpotifyTrack[] }
+type RecentlyPlayedResponse = { items?: RecentlyPlayedItem[] }
+
+function requiredEnv(name: string): string {
+  const v = process.env[name]
+  if (!v) throw new Error(`Missing env: ${name}`)
+  return v
 }
 
-// Tiny in-memory, per-minute limiter (OK for small sites)
-function rateKey(ip: string) {
-  const minute = Math.floor(Date.now() / 60000)
-  return `${ip}:${minute}`
+async function getAccessToken(): Promise<string> {
+  const refresh = requiredEnv('SPOTIFY_REFRESH_TOKEN')
+  const id = requiredEnv('SPOTIFY_CLIENT_ID')
+  const secret = requiredEnv('SPOTIFY_CLIENT_SECRET')
+
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refresh,
+  })
+
+  const r = await fetch(SPOTIFY_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+    cache: 'no-store',
+  })
+
+  const j: { access_token?: string; error?: unknown; error_description?: string } = await r.json()
+  if (!r.ok || !j.access_token) {
+    throw new Error(`token_refresh_failed: ${j.error_description ?? j.error ?? r.statusText}`)
+  }
+  return j.access_token
 }
 
-export async function POST(req: Request) {
+function mapTracks(
+  items: SpotifyTrack[] | RecentlyPlayedItem[],
+  kind: 'recent' | 'top'
+) {
+  return (items ?? []).map((it) => {
+    const t = (kind === 'recent' ? (it as RecentlyPlayedItem).track : (it as SpotifyTrack))
+    return {
+      id: t.id,
+      name: t.name,
+      artist: Array.isArray(t.artists) ? t.artists.map((a) => a.name).join(', ') : '',
+      album: t.album?.name,
+      image: t.album?.images?.[0]?.url,
+      url: t.external_urls?.spotify,
+      previewUrl: t.preview_url ?? null,
+      played_at: kind === 'recent' ? (it as RecentlyPlayedItem).played_at : null,
+    }
+  })
+}
+
+export async function GET(req: Request) {
   try {
-    const json = await req.json().catch(() => ({}))
-    const parsed = AskSchema.safeParse(json)
+    const url = new URL(req.url)
+    const qInput = { type: url.searchParams.get('type') ?? undefined }
+    const parsed = QuerySchema.safeParse(qInput)
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: 'invalid_input', issues: parsed.error.flatten() },
+        { tracks: [], error: 'invalid_query', issues: parsed.error.flatten() },
         { status: 400 }
       )
     }
-    const { name, email, message, topic } = parsed.data as AskPayload
+    const { type }: Query = parsed.data
 
-    // rate limit (lightweight)
-    const ip = clientIp(req)
-    ;(global as any).__ASK__ = (global as any).__ASK__ || new Map<string, number>()
-    const store: Map<string, number> = (global as any).__ASK__
-    const key = rateKey(ip)
-    const count = (store.get(key) ?? 0) + 1
-    store.set(key, count)
-    if (count > 5) {
-      return NextResponse.json({ ok: false, error: 'rate_limited' }, { status: 429 })
+    const access = await getAccessToken()
+    const headers = { Authorization: `Bearer ${access}` }
+
+    if (type === 'top') {
+      const top: TopTracksResponse = await fetch(
+        `${SPOTIFY_TOP_TRACKS_URL}?limit=10&time_range=medium_term`,
+        { headers, cache: 'no-store' }
+      ).then((r) => r.json())
+      return NextResponse.json({ tracks: mapTracks(top.items ?? [], 'top') })
     }
 
-    const to = process.env.CONTACT_TO
-    const from = process.env.CONTACT_FROM || 'no-reply@resend.dev'
-    if (!to || !process.env.RESEND_API_KEY) {
-      return NextResponse.json({ ok: false, error: 'server_not_configured' }, { status: 500 })
+    const recent: RecentlyPlayedResponse = await fetch(
+      `${SPOTIFY_RECENT_TRACKS_URL}?limit=10`,
+      { headers, cache: 'no-store' }
+    ).then((r) => r.json())
+
+    let tracks = mapTracks(recent.items ?? [], 'recent')
+
+    if (tracks.length === 0) {
+      const top: TopTracksResponse = await fetch(
+        `${SPOTIFY_TOP_TRACKS_URL}?limit=10&time_range=short_term`,
+        { headers, cache: 'no-store' }
+      ).then((r) => r.json())
+      tracks = mapTracks(top.items ?? [], 'top')
     }
 
-    const subject = topic ? `[Ask] ${topic} — from ${name}` : `[Ask] from ${name}`
-
-    await resend.emails.send({
-      from,
-      to,
-      subject,
-      reply_to: email,
-      text: `From: ${name} <${email}>\nTopic: ${topic || '-'}\nIP: ${ip}\n\n${message}`,
-    })
-
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ tracks })
   } catch (err) {
     return NextResponse.json(
-      { ok: false, error: (err as Error).message },
-      { status: 500 }
+      {
+        tracks: [],
+        error: (err as Error).message,
+        note:
+          'Ensure SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN are set. This route always uses refresh->access exchange.',
+      },
+      { status: 200 }
     )
   }
 }
