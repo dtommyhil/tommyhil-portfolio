@@ -27,7 +27,6 @@ function basicAuthHeader() {
 }
 
 export async function GET(req: Request) {
-  // where to send the user after we’re done
   const home = new URL('/', req.url)
 
   try {
@@ -39,7 +38,6 @@ export async function GET(req: Request) {
       return NextResponse.redirect(home)
     }
 
-    // Next 15: cookies() must be awaited
     const jar = await cookies()
     const savedState = jar.get('spotify_oauth_state')?.value
     if (!returnedState || !savedState || returnedState !== savedState) {
@@ -47,7 +45,6 @@ export async function GET(req: Request) {
       return NextResponse.redirect(home)
     }
 
-    // Exchange code -> tokens (we ignore access_token here; your API will mint one via refresh)
     const redirect_uri = getRedirectUri(req)
     const body = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -68,17 +65,10 @@ export async function GET(req: Request) {
 
     if (!r.ok) {
       home.searchParams.set('spotify', 'exchange_error')
-      // Optional: include a tiny hint for yourself (not the token)
       if (j?.error) home.searchParams.set('reason', String(j.error))
       return NextResponse.redirect(home)
     }
 
-    // If Spotify sends a new refresh_token, you could rotate it manually.
-    // We DO NOT expose it in the browser for security.
-    // const newRefresh = j.refresh_token as string | undefined
-    // (Store it securely if you intend to rotate.)
-
-    // Clear the one-time state cookie
     const res = NextResponse.redirect(
       (() => {
         home.searchParams.set('spotify', 'connected')
@@ -95,7 +85,6 @@ export async function GET(req: Request) {
         return home.toString()
       })()
     )
-    // try to clear state cookie even on error
     res.cookies.set('spotify_oauth_state', '', { path: '/', maxAge: 0 })
     return res
   }

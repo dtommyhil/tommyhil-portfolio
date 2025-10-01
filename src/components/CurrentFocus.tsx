@@ -51,8 +51,6 @@ function timeAgo(iso?: string) {
   return `${s}s ago`
 }
 
-/* ---------- shared UI ---------- */
-
 function RepoHeader({ repo, loading }: { repo: GhRepo | null; loading: boolean }) {
   return (
     <div className="p-4 flex items-center justify-between">
@@ -112,7 +110,6 @@ function TabButton({
   )
 }
 
-/** Grid-rows accordion so inner can scroll freely */
 function AccordionPanel({
   id,
   labelledBy,
@@ -240,14 +237,14 @@ export default function CurrentFocus({
         <Tabs active={tab} onChange={setTab} />
 
         <div className="p-4">
-          {/* OVERVIEW */}
+          {/* overview */}
           <AccordionPanel id="panel-overview" labelledBy="tab-overview" show={tab === 'overview'}>
             <p className="text-gray-700 text-sm">
               {error ? <span className="text-red-500">{error}</span> : repoData?.description || 'No description provided.'}
             </p>
           </AccordionPanel>
 
-          {/* CODE PREVIEW */}
+          {/* code preview */}
           <AccordionPanel
             id="panel-code-preview"
             labelledBy="tab-code-preview"

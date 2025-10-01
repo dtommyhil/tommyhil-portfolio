@@ -1,4 +1,3 @@
-// src/app/about/page.tsx
 import Header from '@/components/Header'
 import PhotoTiles from '@/components/PhotoTiles'
 import { Timeline } from '@/components/Timeline'
@@ -38,9 +37,10 @@ const timelineItems = [
 
 const projects = [
   {
-    name: "tommyhildoan.com (this site)",
+    name: "Personal Site (this one)",
     description: "Portfolio showcasing my interests and personality through code.",
     tags: ["TypeScript", "JavaScript", "Nextjs", "Supabase"],
+    link: "https://github.com/dtommyhil/tommyhil-portfolio"
   },
   {
     name: "ebuy",

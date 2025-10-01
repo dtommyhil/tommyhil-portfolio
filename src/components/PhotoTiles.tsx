@@ -5,7 +5,7 @@ import Image from 'next/image'
 type Tile = { src: string; alt: string }
 type Props = {
   tiles: Tile[]
-  sizePx?: number // fixed square size
+  sizePx?: number
   className?: string
 }
 
@@ -30,7 +30,7 @@ export default function PhotoTiles({ tiles, sizePx = 168, className = '' }: Prop
               'transition-transform duration-300 ease-out hover:-translate-y-1',
               presets[i] ?? '',
             ].join(' ')}
-            style={{ width: sizePx, height: sizePx }} // lock squares
+            style={{ width: sizePx, height: sizePx }}
           >
             <Image
               src={img.src}

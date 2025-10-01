@@ -97,7 +97,6 @@ export async function GET(req: Request) {
       ).then((r) => r.json())
       tracks = mapTracks(recent.items ?? [], 'recent')
 
-      // Fallback to top tracks if no recent plays found
       if (!Array.isArray(tracks) || tracks.length === 0) {
         const top: TopTracksResponse = await fetch(
           `${SPOTIFY_TOP_TRACKS_URL}?limit=10&time_range=short_term`,
@@ -117,7 +116,7 @@ export async function GET(req: Request) {
           'Ensure SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH_TOKEN are set. ' +
           'This route always uses refresh->access token exchange; no access token env is needed.',
       },
-      { status: 200 } // keep 200 so UI can render an empty state gracefully
+      { status: 200 }
     )
   }
 }

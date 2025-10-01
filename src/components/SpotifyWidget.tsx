@@ -74,7 +74,7 @@ export default function SpotifyWidget() {
 
       {!loading && (
         <>
-          {/* Desktop (≥sm) */}
+          {/* desktop (≥sm) */}
           <div className="hidden sm:flex sm:flex-row sm:flex-nowrap sm:items-stretch gap-4">
             {mainTrack && (
               <div className="sm:w-72 flex-shrink-0">
@@ -95,7 +95,7 @@ export default function SpotifyWidget() {
             </div>
           </div>
 
-          {/* Mobile (<sm) */}
+          {/* mobile (<sm) */}
           <div className="sm:hidden flex flex-col gap-3">
             {[mainTrack, ...sideTrackList].filter(Boolean).map((t, i) => (
               <SpotifyEmbed
@@ -123,16 +123,18 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-full transition-colors text-sm ${
-        active ? 'bg-gray-100 text-gray-700' : 'text-gray-600 hover:bg-gray-100'
-      }`}
+      className={`
+        rounded-full transition-colors
+        text-xs px-3 py-2
+        sm:text-sm sm:px-4 sm:py-2
+        ${active ? 'bg-gray-100 text-gray-700' : 'text-gray-600 hover:bg-gray-100'}
+      `}
     >
       {label}
     </button>
   )
 }
 
-/** fades in on load */
 function SpotifyEmbed({ id, className }: { id: string; className: string }) {
   const trackId = id ? id.split('-')[0] : ''
   return (
@@ -141,7 +143,7 @@ function SpotifyEmbed({ id, className }: { id: string; className: string }) {
       allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
       loading="lazy"
       onLoad={(e) => e.currentTarget.classList.remove('opacity-0')}
-      className={`block opacity-0 transition-opacity duration-500 ease-in-out ${className}`}
+      className={`block opacity-0 transition-opacity duration-300 ease-in-out ${className}`}
     />
   )
 }

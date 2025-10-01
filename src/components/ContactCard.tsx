@@ -13,7 +13,7 @@ export default function ContactCard({ label, value, href, icon }: ContactCardPro
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center rounded-2xl border border-gray-200 p-4 hover:shadow-md transition"
+      className="flex items-center rounded-2xl border border-gray-200 px-4 py-3 hover:shadow-md transition"
     >
       <div className="text-gray-600 ml-1 mr-4">{icon}</div>
       <div>

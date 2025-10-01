@@ -9,7 +9,7 @@ export default function Home() {
 
       <div className="max-w-2xl mx-auto px-8 py-4">
         <h1 className="text-4xl font-bold mb-3">hi, i&apos;m tommyhil</h1>
-        <p className="text-gray-500 text-l mb-12">
+        <p className="text-gray-500 text-md sm:text-lg mb-12">
           caffeine addict documenting my coding journey —<br />
           passionate about digital media, memes, and making things click
         </p>

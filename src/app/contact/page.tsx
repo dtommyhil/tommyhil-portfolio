@@ -9,7 +9,6 @@ type AnswerRowRaw = {
   id: string
   text: string
   created_at: string
-  // some Supabase versions may still return an array; handle both
   question: QuestionObj | QuestionObj[] | null
 }
 type AnswerView = {
@@ -80,7 +79,7 @@ export default async function ContactPage() {
         </section>
 
         <section className="mb-6">
-          <h2 className="text-2xl font-semibold mb-4">Ask me anything</h2>
+          <h2 className="text-xl font-semibold mb-4">Ask me anything</h2>
           <AskForm />
         </section>
 

@@ -3,14 +3,12 @@ import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
-// Scopes for recent plays, now playing, top tracks
 const SCOPES = [
   'user-read-recently-played',
   'user-read-currently-playing',
   'user-top-read',
 ].join(' ')
 
-/** Resolve the exact redirect URI Spotify must see */
 function getRedirectUri(req: Request) {
   const forced = process.env.SPOTIFY_REDIRECT_BASE?.trim()
   if (forced) {
@@ -46,7 +44,6 @@ export async function GET(req: Request) {
     `https://accounts.spotify.com/authorize?${params.toString()}`
   )
 
-  // Only secure over HTTPS / production to avoid invalid_state locally
   const isHttps = new URL(req.url).protocol === 'https:'
   const isProd = process.env.NODE_ENV === 'production'
   res.cookies.set('spotify_oauth_state', state, {
